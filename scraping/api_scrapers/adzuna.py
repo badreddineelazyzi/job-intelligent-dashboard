@@ -1,5 +1,5 @@
 import requests
-from settings import API_KEYS, API_ENDPOINTS
+from scraping.settings import API_KEYS, API_ENDPOINTS
 
 def fetch_adzuna_jobs(keyword="data", location="France"):
     conf = API_KEYS["adzuna"]

@@ -1,6 +1,6 @@
 import requests
 import json
-from settings import API_KEYS, API_ENDPOINTS
+from scraping.settings import API_KEYS, API_ENDPOINTS
 
 def fetch_jooble_jobs(keyword="data", location="France"):
     key = API_KEYS["jooble"]["api_key"]

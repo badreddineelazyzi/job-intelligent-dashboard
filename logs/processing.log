@@ -1,0 +1,21 @@
+2026-03-29 22:30:17,117 - INFO - 🚀 [PIPELINE PROCESSING] Démarrage de l'unification...
+2026-03-29 22:30:17,119 - INFO - 📦 Lecture du dernier scraping : raw_jobs_20260329_220138.json
+2026-03-29 22:30:17,123 - INFO - 📄 Traitement du dataset : DataAnalyst.csv
+2026-03-29 22:30:17,310 - INFO - 📄 Traitement du dataset : DataEngineer.csv
+2026-03-29 22:30:17,584 - INFO - 📄 Traitement du dataset : DataScientist.csv
+2026-03-29 22:30:17,867 - INFO - 🔗 Fusion terminée : 85 lignes brutes cumulées.
+2026-03-29 22:30:17,867 - INFO - 🧹 Lancement du nettoyage (JobCleaner)...
+2026-03-29 22:30:17,898 - INFO - ✨ SUCCÈS : 71 offres propres sauvegardées.
+2026-03-29 22:30:17,900 - INFO - 📂 Fichier final : c:\Users\MOI\Desktop\DW_DL\job-intelligent-dashboard\data\processed\unified_job_market_20260329_2230.csv
+2026-03-29 22:40:01,627 - INFO - 🚀 [PIPELINE PROCESSING] Démarrage de l'unification...
+2026-03-29 22:40:01,628 - INFO - 📦 Normalisation du dernier scraping : raw_jobs_20260329_220138.json
+2026-03-29 22:40:01,630 - INFO - 📄 Normalisation du dataset : DataAnalyst.csv
+2026-03-29 22:40:01,824 - INFO - 📄 Normalisation du dataset : DataEngineer.csv
+2026-03-29 22:40:02,009 - INFO - 📄 Normalisation du dataset : DataScientist.csv
+2026-03-29 22:40:02,363 - INFO - 🔗 Fusion terminée : 85 lignes collectées.
+2026-03-29 22:40:02,364 - INFO - 🧹 Lancement du nettoyage (JobCleaner)...
+2026-03-29 22:40:02,377 - INFO - ⚖️ Lancement de la validation (JobValidator)...
+2026-03-29 22:40:02,377 - INFO - ⚖️ [VALIDATION] Vérification des règles métier...
+2026-03-29 22:40:02,382 - INFO - ✅ 71 offres validées avec succès.
+2026-03-29 22:40:02,397 - INFO - ✨ TERMINÉ : 71 offres prêtes et validées.
+2026-03-29 22:40:02,397 - INFO - 📂 Fichier disponible : c:\Users\MOI\Desktop\DW_DL\job-intelligent-dashboard\data\processed\unified_job_market_latest.csv

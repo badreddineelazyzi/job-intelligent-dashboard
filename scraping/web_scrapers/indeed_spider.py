@@ -1,7 +1,7 @@
 import requests
 import time
 from bs4 import BeautifulSoup
-from settings import SCRAPING_SETTINGS
+from scraping.settings import SCRAPING_SETTINGS
 
 def scrape_indeed(keyword="data", location="France"):
     url = f"https://fr.indeed.com/jobs?q={keyword}&l={location}"
