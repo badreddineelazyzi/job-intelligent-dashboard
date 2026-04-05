@@ -1,0 +1,102 @@
+services:
+  # --- MINIO : DATA LAKE (S3 Storage) ---
+  minio-job:
+    image: quay.io/minio/minio
+    container_name: minio_job
+    ports:
+      - "9000:9000"    # API S3
+      - "9001:9001"    # Console UI
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  # --- CONFIGURATION AUTOMATIQUE DES BUCKETS ---
+  minio-job-init:
+    image: minio/mc
+    depends_on:
+      - minio-job
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set myminio http://minio-job:9000 admin password123) do 
+        echo 'En attente de MinIO sur http://minio-job:9000...' && sleep 2; 
+      done;
+      /usr/bin/mc mb myminio/raw-data || true;
+      /usr/bin/mc mb myminio/processed-data || true;
+      echo '🚀 Buckets créés avec succès !';
+      exit 0;
+      "
+  # --- DATA WAREHOUSE (PostgreSQL) ---
+  postgres_dw:
+    image: postgres:15
+    container_name: postgres_dw
+    environment:
+      POSTGRES_USER: user_dw
+      POSTGRES_PASSWORD: password_dw
+      POSTGRES_DB: job_data_warehouse
+    ports:
+      - "5432:5432"
+    volumes:
+      - dw_data:/var/lib/postgresql/data
+  
+  # --- PGADMIN : Interface Graphique pour PostgreSQL ---
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_gui
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"  # <--- Tu accèderas à l'interface sur http://localhost:5050
+    depends_on:
+      - postgres_dw
+
+  # --- AIRFLOW : Base de données interne ---
+  airflow_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow_password
+      POSTGRES_DB: airflow_db
+
+  # --- AIRFLOW : Webserver (L'interface pour voir tes DAGs) ---
+  airflow_webserver:
+    image: apache/airflow:2.7.0
+    command: webserver
+    depends_on:
+      - airflow_db
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./pipelines:/opt/airflow/pipelines
+      - ./processing:/opt/airflow/processing
+      - ./data:/opt/airflow/data
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow_password@airflow_db/airflow_db
+      - _PIP_ADDITIONAL_DEPENDENCIES=pandas sqlalchemy psycopg2-binary
+
+  # --- AIRFLOW : Scheduler (Celui qui lance les scripts) ---
+  airflow_scheduler:
+    image: apache/airflow:2.7.0
+    command: scheduler
+    depends_on:
+      - airflow_db
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./pipelines:/opt/airflow/pipelines
+      - ./processing:/opt/airflow/processing
+      - ./data:/opt/airflow/data
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow_password@airflow_db/airflow_db
+      - _PIP_ADDITIONAL_DEPENDENCIES=pandas sqlalchemy psycopg2-binary
+
+volumes:
+  dw_data:
+  airflow_logs:
+  minio_data:

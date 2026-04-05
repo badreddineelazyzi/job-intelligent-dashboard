@@ -4,6 +4,18 @@ import json
 import pandas as pd
 import logging
 from datetime import datetime
+import boto3
+from io import StringIO, BytesIO
+
+# Config pour Windows (Localhost) ou Docker (minio-job)
+MINIO_URL = os.getenv("MINIO_ENDPOINT_URL", "http://localhost:9000")
+S3_CLIENT = boto3.client(
+    's3',
+    endpoint_url=MINIO_URL,
+    aws_access_key_id='admin',
+    aws_secret_access_key='password123',
+    region_name='us-east-1'
+)
 
 # 1. CONFIGURATION DU PATH ET DES LOGS
 # On remonte de 'pipelines/' vers la racine du projet
@@ -45,27 +57,18 @@ def run_processing():
         
         all_dataframes = []
 
-        # --- ÉTAPE 1 : RÉCUPÉRATION DES DONNÉES (RAW & DATASETS) ---
-
-        # A. Traitement du Scraping (JSON)
-        raw_dir = os.path.join(project_root, "data", "raw")
-        if os.path.exists(raw_dir):
-            try:
-                json_files = [f for f in os.listdir(raw_dir) if f.endswith('.json')]
-                if json_files:
-                    # On prend le fichier le plus récent
-                    latest_json = max(json_files, key=lambda x: os.path.getctime(os.path.join(raw_dir, x)))
-                    logging.info(f"📦 Normalisation du dernier scraping : {latest_json}")
-                    
-                    with open(os.path.join(raw_dir, latest_json), 'r', encoding='utf-8') as f:
-                        raw_data = json.load(f)
-                        df_scraping = normalizer.normalize(raw_data)
-                        if not df_scraping.empty:
-                            all_dataframes.append(df_scraping)
-                else:
-                    logging.warning("⚠️ Aucun fichier JSON trouvé dans data/raw")
-            except Exception as e:
-                logging.error(f"❌ Erreur lors de la normalisation du JSON : {e}")
+        # --- ÉTAPE 1 : RÉCUPÉRATION DEPUIS MINIO (RAW) ---
+        response = S3_CLIENT.list_objects_v2(Bucket="raw-data")
+        if 'Contents' in response:
+            # Récupère le fichier le plus récent
+            latest_file = max(response['Contents'], key=lambda x: x['LastModified'])
+            obj = S3_CLIENT.get_object(Bucket="raw-data", Key=latest_file['Key'])
+            raw_data = json.load(obj['Body'])
+            
+            logging.info(f"📦 Lecture MinIO : {latest_file['Key']}")
+            df_scraping = normalizer.normalize(raw_data)
+            if not df_scraping.empty:
+                all_dataframes.append(df_scraping)
 
         # B. Traitement des Datasets Externes (CSV)
         datasets_dir = os.path.join(project_root, "datasets")
@@ -105,24 +108,19 @@ def run_processing():
                 logging.error("❌ Le schéma final est invalide. Arrêt du pipeline.")
                 return
 
-            # --- ÉTAPE 3 : EXPORTATION ---
-
-            output_dir = os.path.join(project_root, "data", "processed")
-            os.makedirs(output_dir, exist_ok=True)
+            # --- ÉTAPE 3 : SAUVEGARDE VERS MINIO (PROCESSED) ---
+            csv_buffer = StringIO()
+            final_df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
             
-            # Sauvegarde avec Timestamp (Historique)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-            output_name = f"unified_job_market_{timestamp}.csv"
-            output_path = os.path.join(output_dir, output_name)
+            # Sauvegarde 'Latest' pour la suite du pipeline
+            S3_CLIENT.put_object(
+                Bucket="processed-data",
+                Key="unified_job_market_latest.csv",
+                Body=csv_buffer.getvalue(),
+                ContentType='text/csv'
+            )
             
-            # Sauvegarde "Latest" (Pour Power BI / Database)
-            latest_path = os.path.join(output_dir, "unified_job_market_latest.csv")
-
-            final_df.to_csv(output_path, index=False, encoding='utf-8-sig')
-            final_df.to_csv(latest_path, index=False, encoding='utf-8-sig')
-
-            logging.info(f"✨ TERMINÉ : {len(final_df)} offres prêtes et validées.")
-            logging.info(f"📂 Fichier disponible : {latest_path}")
+            logging.info("✨ TERMINÉ : Fichier sauvegardé dans le bucket 'processed-data'")
             
         else:
             logging.warning("⚠️ Aucune donnée disponible pour le traitement.")

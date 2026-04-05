@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from scraping.settings import SCRAPING_SETTINGS
 
-def scrape_rekrute(keyword="data", location="Maroc"):
+def scrape_rekrute(keyword="data", location="France"):
     # Construction de l'URL (exemple simplifié)
     url = f"https://www.rekrute.com/offres.html?s=1&p=1&st=1&keyword={keyword}"
     

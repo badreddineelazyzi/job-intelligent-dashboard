@@ -57,6 +57,6 @@ GENERAL_SETTINGS = {
     "raw_data_path": "data/raw/",
     "processed_data_path": "data/processed/",
     "export_path": "data/exports/",
-    "default_keyword": "data scientist",
+    "default_keyword": "data",
     "default_location": "France"
 }
